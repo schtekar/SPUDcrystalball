@@ -1,31 +1,34 @@
-name: Update data
+name: Update brønner
 
 on:
   schedule:
-    - cron: "0 */6 * * *"
-  workflow_dispatch:
+    - cron: "0 */6 * * *"  # hver 6. time
+  workflow_dispatch:        # kan kjøres manuelt
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Sjekk ut repo
       - uses: actions/checkout@v4
 
+      # 2️⃣ Sett opp Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      # 3️⃣ Installer nødvendige pakker
       - name: Install dependencies
-        run: pip install geopy requests pandas
+        run: pip install requests geopy
 
-      - name: Run build_data.py
-        run: |
-          mkdir -p artifact
-          python scripts/build_data.py artifact/data.json
+      # 4️⃣ Kjør build_data.py
+      - name: Build brønndata
+        run: python scripts/build_data.py
 
-      - name: Upload artifact for GitHub Pages
+      # 5️⃣ Last opp til GitHub Pages
+      - name: Upload to GitHub Pages
         uses: actions/upload-pages-artifact@v4
         with:
-          path: artifact
+          path: docs
