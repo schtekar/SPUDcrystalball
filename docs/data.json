@@ -1,9 +1,9 @@
 [
   {
-    "well": "31/2-12 Y2H",
+    "well": "test well",
     "well_lat": 60.8,
     "well_lon": 3.5,
-    "rig": "Deepsea Atlantic",
+    "rig": "FUG test rig",
     "rig_lat": 58.9,
     "rig_lon": 2.1,
     "distance_km": 220
