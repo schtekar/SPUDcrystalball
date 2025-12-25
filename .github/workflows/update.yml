@@ -10,24 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Sjekk ut repoet med riktig token
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      # Installer Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      # Installer pakker
       - name: Install dependencies
         run: |
           pip install geopy requests pandas
 
+      # Kjør build_data.py
       - name: Run build_data.py
         run: |
           python scripts/build_data.py
 
+      # Commit og push JSON tilbake til repoet
       - name: Commit & Push
         run: |
           git config user.name "github-actions"
