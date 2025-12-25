@@ -1,10 +1,58 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>SPUDcrystalballr</title>
+  <title>Kommende offshorebrønner</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet/dist/leaflet.css"
+  />
+  <style>
+    #map { height: 100vh; }
+  </style>
 </head>
 <body>
-  <h1>SPUDcrystalball</h1>
-  <p>WIP site</p>
+
+<h2 style="text-align:center;">Kommende offshorebrønner</h2>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+  // Hent data fra JSON
+  fetch("data.json")
+    .then(response => response.json())
+    .then(data => {
+      // Sett opp kart, sentrert på norsk sektor
+      const map = L.map("map").setView([60, 3], 5);
+
+      // OpenStreetMap-bakgrunn
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      data.forEach(item => {
+        // Marker for brønn
+        L.marker([item.well_lat, item.well_lon], {title: item.well})
+          .addTo(map)
+          .bindPopup(`<b>Well:</b> ${item.well}`);
+
+        // Marker for rigg
+        L.marker([item.rig_lat, item.rig_lon], {title: item.rig, icon: L.icon({
+          iconUrl: 'https://cdn-icons-png.flaticon.com/512/3079/3079180.png',
+          iconSize: [32, 32],
+          iconAnchor: [16, 32]
+        })})
+          .addTo(map)
+          .bindPopup(`<b>Rig:</b> ${item.rig}`);
+
+        // Linje mellom rigg og brønn
+        L.polyline([
+          [item.rig_lat, item.rig_lon],
+          [item.well_lat, item.well_lon]
+        ], {color: 'blue'}).addTo(map);
+      });
+    })
+    .catch(err => console.error(err));
+</script>
+
 </body>
 </html>
