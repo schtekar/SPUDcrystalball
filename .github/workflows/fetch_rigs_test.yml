@@ -1,0 +1,30 @@
+name: Test fetch rig positions
+
+on:
+  workflow_dispatch:   # gjør at workflowen kan kjøres manuelt
+
+jobs:
+  fetch_rigs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Fetch rig positions
+        run: python scripts/fetch_rig_positions.py
+
+      - name: Upload rig positions artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: rig_positions
+          path: docs/rig_positions.json
