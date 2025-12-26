@@ -102,7 +102,7 @@ for feature in features:
             "purpose": purpose,
             "status": status,
             "entryDate": entry_date_str,
-            "rig_name": attr.get("wlbDrillingFacilityName"),
+            "rig_name": attr.get("wlbDrillingFacilityName") or "UNKNOWN",
             "rig_type": attr.get("wlbDrillingFacilityFixedOrMove"),
             "lat": geom["y"],
             "lon": geom["x"]
