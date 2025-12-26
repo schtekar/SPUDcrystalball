@@ -9,6 +9,7 @@ from rig_registry import RIG_MMSI
 # --------------------
 AUTH_URL = "https://kystdatahuset.no/ws/api/auth/login"
 AIS_URL = "https://kystdatahuset.no/ws/api/ais/positions/for-mmsis-time"
+DATA_URL = "https://schtekar.github.io/SPUDcrystalball/data.json"
 
 USERNAME = os.getenv("KYSTDATAHUSET_USERNAME")
 PASSWORD = os.getenv("KYSTDATAHUSET_PASSWORD")
@@ -45,7 +46,7 @@ print("✅ Autentisering OK – JWT mottatt")
 # --------------------
 # 2️⃣ HENT BRØNNDATA
 # --------------------
-DATA_URL = "https://schtekar.github.io/SPUDcrystalball/data.json"
+print("🌍 Henter brønndata...")
 wells = requests.get(DATA_URL).json()
 
 unique_rigs = {w["rig_name"] for w in wells if w["rig_name"] in RIG_MMSI}
@@ -54,9 +55,12 @@ print(f"🎯 Rigger funnet i registry: {unique_rigs}")
 # --------------------
 # 3️⃣ TIDSINTERVALL
 # --------------------
-def get_time_interval(days_ago):
+def get_time_interval(days_ago: int):
+    """
+    Returnerer tidsrom 18:00–23:59 UTC for gitt dag
+    """
     d = datetime.utcnow() - timedelta(days=days_ago)
-    start = d.replace(hour=23, minute=0, second=0).strftime("%Y%m%d%H%M")
+    start = d.replace(hour=18, minute=0, second=0).strftime("%Y%m%d%H%M")
     end = d.replace(hour=23, minute=59, second=59).strftime("%Y%m%d%H%M")
     return start, end
 
@@ -75,8 +79,11 @@ for rig in unique_rigs:
     mmsi = RIG_MMSI[rig]
     print(f"\n🚢 {rig} (MMSI {mmsi})")
 
+    found_data = False
+
     for days_ago in [2, 3]:
         start, end = get_time_interval(days_ago)
+
         payload = {
             "mmsiIds": [mmsi],
             "start": start,
@@ -84,20 +91,36 @@ for rig in unique_rigs:
             "minSpeed": 0
         }
 
-        print(f"  ⏱ {days_ago} døgn siden: {start}–{end}")
+        print(f"  ⏱ Forsøker {days_ago} døgn siden: {start}–{end}")
 
         r = requests.post(AIS_URL, json=payload, headers=headers)
         r.raise_for_status()
         data = r.json()
 
-        print(f"    → success={data.get('success')} datapunkter={len(data.get('data', []))}")
+        datapoints = data.get("data", [])
+        print(f"    → success={data.get('success')} datapunkter={len(datapoints)}")
 
-        if data.get("success") and data.get("data"):
-            last = data["data"][-1]
+        if data.get("success") and datapoints:
+            first = datapoints[0]
+            last = datapoints[-1]
+
             rig_positions.append({
                 "rig_name": rig,
                 "mmsi": mmsi,
                 "days_ago": days_ago,
+                "position_type": "first",
+                "lat": first[3],
+                "lon": first[2],
+                "speed": first[4],
+                "course": first[5],
+                "timestamp": first[1]
+            })
+
+            rig_positions.append({
+                "rig_name": rig,
+                "mmsi": mmsi,
+                "days_ago": days_ago,
+                "position_type": "last",
                 "lat": last[3],
                 "lon": last[2],
                 "speed": last[4],
@@ -105,9 +128,21 @@ for rig in unique_rigs:
                 "timestamp": last[1]
             })
 
+            print(f"    ✅ Lagret first + last for {days_ago} døgn siden")
+            found_data = True
+            break
+
+        else:
+            print(f"    ⚠️ Ingen data funnet for {days_ago} døgn siden")
+
+    if not found_data:
+        print(f"    ❌ Ingen data funnet for {rig} verken 2 eller 3 døgn siden")
+
 # --------------------
 # 5️⃣ LAGRE RESULTAT
 # --------------------
+os.makedirs("docs", exist_ok=True)
+
 with open("docs/rig_positions.json", "w") as f:
     json.dump(rig_positions, f, indent=2)
 
