@@ -2,30 +2,86 @@ import pandas as pd
 import json
 import os
 
-url = "docs/data.json"  # Lokalt fil
+DATA_PATH = "docs/data.json"
+OUT_PATH = "docs/analysis_summary.json"
 
-if not os.path.exists(url):
-    print(f"Feil: {url} finnes ikke. Avbryter analysen.")
+# --- 1️⃣ Last data ---
+if not os.path.exists(DATA_PATH):
+    print(f"❌ Fant ikke {DATA_PATH}. Avbryter analyse.")
     exit(1)
 
-df = pd.read_json(url)
+df = pd.read_json(DATA_PATH)
 
-# Sørg for at nødvendige kolonner finnes
-for col in ["rig_name", "rig_type", "purpose", "status", "entryDate"]:
+print("Kolonner i datasettet:")
+print(df.columns.tolist())
+print("Antall rader:", len(df))
+
+# --- 2️⃣ Sørg for at nødvendige kolonner finnes ---
+expected_cols = [
+    "purpose",
+    "status",
+    "entryDate",
+    "rig_name",
+    "rig_type",
+    "operator",
+    "well_type",
+    "field"
+]
+
+for col in expected_cols:
     if col not in df.columns:
         df[col] = "UNKNOWN"
 
+# Normaliser tekst (case-insensitive analyser)
+df["purpose"] = df["purpose"].astype(str).str.upper()
+df["status"] = df["status"].astype(str).str.upper()
+
+# --- 3️⃣ Analyse ---
 summary = {
-    "total_wells": len(df),
+    "total_wells": int(len(df)),
+
     "purpose_counts": df["purpose"].value_counts().to_dict(),
-    "online_operational": len(df[df["status"] == "ONLINE/OPERATIONAL"]),
-    "planned": len(df[df["entryDate"] == ""]),
-    "top_rigs": df.groupby("rig_name").size().sort_values(ascending=False).head(5).to_dict(),
-    "rig_type_counts": df["rig_type"].value_counts().to_dict()
+
+    "status_counts": df["status"].value_counts().to_dict(),
+
+    "planned_wells": int((df["entryDate"] == "").sum()),
+
+    "online_operational": int((df["status"] == "ONLINE/OPERATIONAL").sum()),
+
+    "top_rigs": (
+        df[df["rig_name"] != "UNKNOWN"]
+        .groupby("rig_name")
+        .size()
+        .sort_values(ascending=False)
+        .head(5)
+        .to_dict()
+    ),
+
+    "rig_type_counts": df["rig_type"].value_counts().to_dict(),
+
+    "top_operators": (
+        df[df["operator"] != "UNKNOWN"]
+        .groupby("operator")
+        .size()
+        .sort_values(ascending=False)
+        .head(5)
+        .to_dict()
+    ),
+
+    "well_type_counts": df["well_type"].value_counts().to_dict(),
+
+    "field_counts": (
+        df[df["field"] != "UNKNOWN"]
+        .groupby("field")
+        .size()
+        .sort_values(ascending=False)
+        .head(10)
+        .to_dict()
+    )
 }
 
-# Skriv summary til fil
-with open("docs/analysis_summary.json", "w") as f:
+# --- 4️⃣ Lagre ---
+with open(OUT_PATH, "w") as f:
     json.dump(summary, f, indent=2)
 
-print("✅ Analyse fullført. Resultat lagret i docs/analysis_summary.json")
+print(f"✅ Analyse fullført. Lagret til {OUT_PATH}")
