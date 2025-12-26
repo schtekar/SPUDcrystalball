@@ -28,7 +28,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install requests geopy
+        run:  pip install requests geopy pandas
 
       - name: Build brønndata
         run: python scripts/build_data.py
