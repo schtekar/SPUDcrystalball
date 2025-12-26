@@ -1,22 +1,17 @@
 import pandas as pd
+import json
 
-# 1. Last data
 url = "https://schtekar.github.io/SPUDcrystalball/data.json"
 df = pd.read_json(url)
 
-# 2. Enkel info
-print("Totalt antall brønner:", len(df))
-print("Formål for brønner (count per type):")
-print(df["purpose"].value_counts())
+summary = {
+    "total_wells": len(df),
+    "purpose_counts": df["purpose"].value_counts().to_dict(),
+    "online_operational": len(df[df["status"] == "ONLINE/OPERATIONAL"]),
+    "planned": len(df[df["entryDate"] == ""]),
+    "top_rigs": df.groupby("rig").size().sort_values(ascending=False).head(5).to_dict()
+}
 
-# 3. Brønner med status 'ONLINE/OPERATIONAL'
-online = df[df["status"] == "ONLINE/OPERATIONAL"]
-print("\nONLINE/OPERATIONAL brønner:", len(online))
-
-# 4. Brønner med blank EntryDate (planlagt)
-planned = df[df["entryDate"] == ""]
-print("Planlagte brønner:", len(planned))
-
-# 5. Top 5 rigger med flest brønner
-print("\nTop 5 rigger:")
-print(df.groupby("rig").size().sort_values(ascending=False).head(5))
+# Skriv summary til fil
+with open("docs/analysis_summary.json", "w") as f:
+    json.dump(summary, f, indent=2)
