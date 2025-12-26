@@ -1,7 +1,7 @@
 import requests
 import json
 from datetime import datetime
-from scripts.rig_registry import rig_registry  # <-- importer rig_registry fra rig_registry.py
+from rig_registry import rig_registry
 
 # --- 1️⃣ Hent brønndata fra GitHub Pages ---
 DATA_URL = "https://schtekar.github.io/SPUDcrystalball/data.json"
