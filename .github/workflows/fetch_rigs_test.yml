@@ -1,7 +1,7 @@
 name: Test fetch rig positions
 
 on:
-  workflow_dispatch:   # gjør at workflowen kan kjøres manuelt
+  workflow_dispatch:
 
 jobs:
   fetch_rigs:
@@ -21,7 +21,9 @@ jobs:
           pip install requests
 
       - name: Fetch rig positions
-        run: python scripts/fetch_rig_positions.py
+        run: |
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)/scripts"
+          python scripts/fetch_rig_positions.py
 
       - name: Upload rig positions artifact
         uses: actions/upload-artifact@v4
