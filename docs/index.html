@@ -17,41 +17,43 @@
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-  // Hent data fra JSON
   fetch("data.json")
     .then(response => response.json())
     .then(data => {
-      // Sett opp kart, sentrert på norsk sektor
+
       const map = L.map("map").setView([60, 3], 5);
 
-      // OpenStreetMap-bakgrunn
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map);
 
       data.forEach(item => {
-        // Marker for brønn
-        L.marker([item.well_lat, item.well_lon], {title: item.well})
-          .addTo(map)
-          .bindPopup(`<b>Well:</b> ${item.well}`);
+        if (!item.lat || !item.lon) return;
 
-        // Marker for rigg
-        L.marker([item.rig_lat, item.rig_lon], {title: item.rig, icon: L.icon({
-          iconUrl: 'https://cdn-icons-png.flaticon.com/512/3079/3079180.png',
-          iconSize: [32, 32],
-          iconAnchor: [16, 32]
-        })})
-          .addTo(map)
-          .bindPopup(`<b>Rig:</b> ${item.rig}`);
+        const isEntered = item.entryDate && item.entryDate !== "";
 
-        // Linje mellom rigg og brønn
-        L.polyline([
-          [item.rig_lat, item.rig_lon],
-          [item.well_lat, item.well_lon]
-        ], {color: 'blue'}).addTo(map);
+        const markerColor = isEntered ? "green" : "red";
+
+        const marker = L.circleMarker([item.lat, item.lon], {
+          radius: 7,
+          color: markerColor,
+          fillColor: markerColor,
+          fillOpacity: 0.8
+        }).addTo(map);
+
+        const popupHtml = `
+          <b>Brønn:</b> ${item.well}<br/>
+          <b>Operatør:</b> ${item.operator || "UNKNOWN"}<br/>
+          <b>Felt:</b> ${item.field || "UNKNOWN"}<br/>
+          <b>Rigg:</b> ${item.rig_name || "UNKNOWN"}<br/>
+          <b>Status:</b> ${isEntered ? "Entret" : "Ikke påbegynt"}<br/>
+          <b>Entry date:</b> ${item.entryDate || "-"}
+        `;
+
+        marker.bindPopup(popupHtml);
       });
     })
-    .catch(err => console.error(err));
+    .catch(err => console.error("❌ Feil ved lasting av data.json", err));
 </script>
 
 </body>
