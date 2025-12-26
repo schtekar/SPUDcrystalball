@@ -38,7 +38,7 @@ for rig in unique_rigs:
             "mmsiIds": [mmsi],
             "start": start_time,
             "end": end_time,
-            "minSpeed": 0.5
+            "minSpeed": 0
         }
 
         print(f"\nTidsintervall {days_ago} døgn siden: {start_time} - {end_time}")
