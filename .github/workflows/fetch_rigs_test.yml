@@ -21,6 +21,9 @@ jobs:
           pip install requests
 
       - name: Fetch rig positions
+        env:
+          KYSTDATAHUSET_USERNAME: ${{ secrets.KYSTDATAHUSET_USERNAME }}
+          KYSTDATAHUSET_PASSWORD: ${{ secrets.KYSTDATAHUSET_PASSWORD }}
         run: |
           export PYTHONPATH="${PYTHONPATH}:$(pwd)/scripts"
           python scripts/fetch_rig_positions.py
