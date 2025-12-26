@@ -1,7 +1,7 @@
 import requests
 import json
-from datetime import datetime
-from rig_registry import RIG_MMSI  # <-- korrekt import
+from datetime import datetime, timedelta
+from rig_registry import RIG_MMSI
 
 # --- 1️⃣ Hent brønndata fra GitHub Pages ---
 DATA_URL = "https://schtekar.github.io/SPUDcrystalball/data.json"
@@ -17,17 +17,21 @@ print(f"Unike rigger å hente posisjon for: {unique_rigs}")
 
 # --- 3️⃣ AIS API ---
 API_URL = "https://kystdatahuset.no/ws/api/ais/positions/for-mmsis-time"
-now = datetime.utcnow().strftime("%Y%m%d%H%M")
+
+# Sett tidsintervall siste time
+now = datetime.utcnow()
+start_time = (now - timedelta(hours=1)).strftime("%Y%m%d%H%M")
+end_time = now.strftime("%Y%m%d%H%M")
 
 rig_positions = []
 
 for rig in unique_rigs:
-    mmsi = RIG_MMSI[rig]  # <-- bruk RIG_MMSI her
+    mmsi = RIG_MMSI[rig]
 
     payload = {
         "mmsiIds": [mmsi],
-        "start": now,
-        "end": now,
+        "start": start_time,
+        "end": end_time,
         "minSpeed": 0.5
     }
 
@@ -35,7 +39,7 @@ for rig in unique_rigs:
         r = requests.post(API_URL, json=payload)
         r.raise_for_status()
         data = r.json()
-        if data.get("success") and data.get("data"):
+        if data.get("success") and data.get("data") and len(data["data"]) > 0:
             last_pos = data["data"][-1]
             rig_positions.append({
                 "rig_name": rig,
@@ -48,7 +52,7 @@ for rig in unique_rigs:
             })
             print(f"{rig}: posisjon lagret")
         else:
-            print(f"{rig}: ingen posisjonsdata tilgjengelig")
+            print(f"{rig}: ingen posisjonsdata tilgjengelig i siste time")
     except Exception as e:
         print(f"{rig}: feil ved henting -> {e}")
 
