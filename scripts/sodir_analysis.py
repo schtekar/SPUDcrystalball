@@ -1,14 +1,19 @@
 import pandas as pd
 import json
+import os
 
-url = "https://schtekar.github.io/SPUDcrystalball/data.json"
+url = "docs/data.json"  # Lokalt fil
+
+if not os.path.exists(url):
+    print(f"Feil: {url} finnes ikke. Avbryter analysen.")
+    exit(1)
+
 df = pd.read_json(url)
 
-# Sikre at kolonner finnes
-if "rig_name" not in df.columns:
-    df["rig_name"] = "UNKNOWN"
-if "rig_type" not in df.columns:
-    df["rig_type"] = "UNKNOWN"
+# Sørg for at nødvendige kolonner finnes
+for col in ["rig_name", "rig_type", "purpose", "status", "entryDate"]:
+    if col not in df.columns:
+        df[col] = "UNKNOWN"
 
 summary = {
     "total_wells": len(df),
@@ -22,3 +27,5 @@ summary = {
 # Skriv summary til fil
 with open("docs/analysis_summary.json", "w") as f:
     json.dump(summary, f, indent=2)
+
+print("✅ Analyse fullført. Resultat lagret i docs/analysis_summary.json")
