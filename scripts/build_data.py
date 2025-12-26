@@ -8,6 +8,7 @@ base_url = "https://factmaps.sodir.no/api/rest/services/Factmaps/FactMapsWGS84/F
 query_url = f"{base_url}/{layer}/query"
 page_size = 1000
 
+# Husk komma mellom feltene!
 out_fields = (
     "wlbWellboreName,"
     "wlbPurpose,"
@@ -18,43 +19,27 @@ out_fields = (
 )
 
 # --- 1️⃣ Finn alle OBJECTIDs ---
-id_params = {
-    "where": "1=1",
-    "returnIdsOnly": "true",
-    "f": "json"
-}
-
+id_params = {"where": "1=1", "returnIdsOnly": "true", "f": "json"}
 id_response = requests.get(query_url, params=id_params)
 id_response.raise_for_status()
 object_ids = sorted(id_response.json().get("objectIds", []))
-
 print(f"Fant {len(object_ids)} brønner totalt")
 
 # --- 2️⃣ Hent alle features i batches ---
 features = []
-
 for i in range(0, len(object_ids), page_size):
     batch_ids = object_ids[i:i + page_size]
     where_clause = f"OBJECTID >= {batch_ids[0]} AND OBJECTID <= {batch_ids[-1]}"
-
-    params = {
-        "where": where_clause,
-        "outFields": out_fields,
-        "outSR": 4326,
-        "f": "json"
-    }
-
+    params = {"where": where_clause, "outFields": out_fields, "outSR": 4326, "f": "json"}
     resp = requests.get(query_url, params=params)
     resp.raise_for_status()
     batch_features = resp.json().get("features", [])
     features.extend(batch_features)
-
     print(f"Hentet {len(batch_features)} brønner ({i + len(batch_features)}/{len(object_ids)})")
 
 # --- 3️⃣ Filtrering ---
 today = datetime.today()
 cutoff_date = today - timedelta(days=100)
-
 relevant_purposes = {"PRODUCTION", "INJECTION", "WILDCAT"}
 filtered_wells = []
 
@@ -66,10 +51,10 @@ for feature in features:
     purpose = attr.get("wlbPurpose") or ""
     entry_val = attr.get("wlbEntryDate")
 
-    # Status
+    # Status-filtrering
     status_ok = status in {"ONLINE/OPERATIONAL", ""}
 
-    # EntryDate
+    # EntryDate-filtrering
     if entry_val in (None, "", 0):
         entry_ok = True
         entry_date_str = ""
@@ -79,7 +64,6 @@ for feature in features:
                 entry_date = datetime.strptime(str(entry_val), "%Y%m%d")
             else:
                 entry_date = datetime.strptime(str(entry_val)[:10], "%Y-%m-%d")
-
             entry_ok = entry_date >= cutoff_date
             entry_date_str = entry_date.strftime("%Y-%m-%d")
         except Exception:
@@ -89,21 +73,14 @@ for feature in features:
     # Formål
     purpose_ok = purpose in relevant_purposes
 
-    if (
-        status_ok
-        and entry_ok
-        and purpose_ok
-        and geom
-        and "x" in geom
-        and "y" in geom
-    ):
+    if status_ok and entry_ok and purpose_ok and geom and "x" in geom and "y" in geom:
         filtered_wells.append({
             "well": attr.get("wlbWellboreName"),
             "purpose": purpose,
             "status": status,
             "entryDate": entry_date_str,
             "rig_name": attr.get("wlbDrillingFacilityName") or "UNKNOWN",
-            "rig_type": attr.get("wlbDrillingFacilityFixedOrMove"),
+            "rig_type": attr.get("wlbDrillingFacilityFixedOrMove") or "UNKNOWN",
             "lat": geom["y"],
             "lon": geom["x"]
         })
