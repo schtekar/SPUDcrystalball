@@ -8,7 +8,6 @@ base_url = "https://factmaps.sodir.no/api/rest/services/Factmaps/FactMapsWGS84/F
 query_url = f"{base_url}/{layer}/query"
 page_size = 1000
 
-# Husk komma mellom feltene!
 out_fields = (
     "wlbWellboreName,"
     "wlbPurpose,"
@@ -37,6 +36,8 @@ for i in range(0, len(object_ids), page_size):
     features.extend(batch_features)
     print(f"Hentet {len(batch_features)} brønner ({i + len(batch_features)}/{len(object_ids)})")
 
+print(f"Totalt features hentet: {len(features)}")
+
 # --- 3️⃣ Filtrering ---
 today = datetime.today()
 cutoff_date = today - timedelta(days=100)
@@ -47,14 +48,14 @@ for feature in features:
     attr = feature.get("attributes", {})
     geom = feature.get("geometry", {})
 
-    status = attr.get("wlbStatus") or ""
-    purpose = attr.get("wlbPurpose") or ""
+    status = (attr.get("wlbStatus") or "").upper()
+    purpose = (attr.get("wlbPurpose") or "").upper()
     entry_val = attr.get("wlbEntryDate")
 
-    # Status-filtrering
+    # Status
     status_ok = status in {"ONLINE/OPERATIONAL", ""}
 
-    # EntryDate-filtrering
+    # EntryDate
     if entry_val in (None, "", 0):
         entry_ok = True
         entry_date_str = ""
@@ -70,7 +71,7 @@ for feature in features:
             entry_ok = False
             entry_date_str = str(entry_val)
 
-    # Formål
+    # Purpose
     purpose_ok = purpose in relevant_purposes
 
     if status_ok and entry_ok and purpose_ok and geom and "x" in geom and "y" in geom:
@@ -85,8 +86,10 @@ for feature in features:
             "lon": geom["x"]
         })
 
+print(f"Etter filtrering: {len(filtered_wells)} relevante brønner")
+
 # --- 4️⃣ Lagre ---
 with open("docs/data.json", "w") as f:
     json.dump(filtered_wells, f, indent=2)
 
-print(f"✅ Lagret {len(filtered_wells)} relevante brønner")
+print(f"✅ Lagret {len(filtered_wells)} relevante brønner til docs/data.json")
