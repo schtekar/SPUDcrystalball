@@ -8,13 +8,17 @@ base_url = "https://factmaps.sodir.no/api/rest/services/Factmaps/FactMapsWGS84/F
 query_url = f"{base_url}/{layer}/query"
 page_size = 1000
 
+# Legg til ekstra felter: operator, well type, field
 out_fields = (
     "wlbWellboreName,"
     "wlbPurpose,"
     "wlbStatus,"
     "wlbEntryDate,"
     "wlbDrillingFacilityFixedOrMove,"
-    "wlbDrillingFacility"
+    "wlbDrillingFacility,"
+    "wlbDrillingOperator,"
+    "wlbWellType,"
+    "wlbField"
 )
 
 # --- 1️⃣ Finn alle OBJECTIDs ---
@@ -55,16 +59,20 @@ for feature in features:
     # Status
     status_ok = status in {"ONLINE/OPERATIONAL", ""}
 
-    # EntryDate
+    # EntryDate (ESRI date kan være millisekund siden 1970)
     if entry_val in (None, "", 0):
         entry_ok = True
         entry_date_str = ""
     else:
         try:
-            if isinstance(entry_val, int):
+            # Hvis tall og veldig stort → ESRI timestamp (millis)
+            if isinstance(entry_val, int) and entry_val > 1e7:
+                entry_date = datetime.utcfromtimestamp(entry_val / 1000)
+            elif isinstance(entry_val, int):
                 entry_date = datetime.strptime(str(entry_val), "%Y%m%d")
             else:
                 entry_date = datetime.strptime(str(entry_val)[:10], "%Y-%m-%d")
+
             entry_ok = entry_date >= cutoff_date
             entry_date_str = entry_date.strftime("%Y-%m-%d")
         except Exception:
@@ -82,6 +90,9 @@ for feature in features:
             "entryDate": entry_date_str,
             "rig_name": attr.get("wlbDrillingFacility") or "UNKNOWN",
             "rig_type": attr.get("wlbDrillingFacilityFixedOrMove") or "UNKNOWN",
+            "operator": attr.get("wlbDrillingOperator") or "UNKNOWN",
+            "well_type": attr.get("wlbWellType") or "UNKNOWN",
+            "field": attr.get("wlbField") or "UNKNOWN",
             "lat": geom["y"],
             "lon": geom["x"]
         })
