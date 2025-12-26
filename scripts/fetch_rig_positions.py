@@ -1,7 +1,7 @@
 import requests
 import json
 from datetime import datetime
-from rig_registry import rig_registry
+from rig_registry import RIG_MMSI  # <-- korrekt import
 
 # --- 1️⃣ Hent brønndata fra GitHub Pages ---
 DATA_URL = "https://schtekar.github.io/SPUDcrystalball/data.json"
@@ -12,7 +12,7 @@ wells = response.json()
 print(f"Fant {len(wells)} brønner i data.json")
 
 # --- 2️⃣ Finn unike rigger som finnes i rig_registry ---
-unique_rigs = {well['rig_name'] for well in wells if well['rig_name'] in rig_registry}
+unique_rigs = {well['rig_name'] for well in wells if well['rig_name'] in RIG_MMSI}
 print(f"Unike rigger å hente posisjon for: {unique_rigs}")
 
 # --- 3️⃣ AIS API ---
@@ -22,7 +22,7 @@ now = datetime.utcnow().strftime("%Y%m%d%H%M")
 rig_positions = []
 
 for rig in unique_rigs:
-    mmsi = rig_registry[rig]  # hent MMSI fra rig_registry.py
+    mmsi = RIG_MMSI[rig]  # <-- bruk RIG_MMSI her
 
     payload = {
         "mmsiIds": [mmsi],
