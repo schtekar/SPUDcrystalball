@@ -5,15 +5,20 @@
   <title>SPUD Crystalball – Datasummary</title>
 </head>
 <body>
-  <h1>Datasummary</h1>
-
-  <h2>Rådata (data.json)</h2>
+  <h2>analysis_summary.json</h2>
+  <pre id="summary">Laster...</pre>
+  
+  <h2>data.json</h2>
   <pre id="rawdata">Laster...</pre>
 
-  <h2>Analyse (analysis_summary.json)</h2>
-  <pre id="summary">Laster...</pre>
-
   <script>
+    // Hent summary
+    fetch("analysis_summary.json")
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("summary").textContent = JSON.stringify(data, null, 2);
+      });
+    
     // Hent raw data
     fetch("data.json")
       .then(res => res.json())
@@ -21,12 +26,6 @@
         document.getElementById("rawdata").textContent = JSON.stringify(data, null, 2);
       });
 
-    // Hent summary
-    fetch("analysis_summary.json")
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("summary").textContent = JSON.stringify(data, null, 2);
-      });
   </script>
 </body>
 </html>
