@@ -35,10 +35,17 @@ for rig in unique_rigs:
         "minSpeed": 0.5
     }
 
+    print(f"\n--- Henter posisjon for {rig} ---")
+    print(f"MMSI: {mmsi}")
+    print(f"Payload sendt til API: {payload}")
+
     try:
         r = requests.post(API_URL, json=payload)
         r.raise_for_status()
         data = r.json()
+
+        print(f"Respons fra API for {rig}: {json.dumps(data, indent=2)[:500]} ...")  # vis første 500 tegn
+
         if data.get("success") and data.get("data") and len(data["data"]) > 0:
             last_pos = data["data"][-1]
             rig_positions.append({
@@ -60,4 +67,4 @@ for rig in unique_rigs:
 with open("docs/rig_positions.json", "w") as f:
     json.dump(rig_positions, f, indent=2)
 
-print(f"✅ Lagret {len(rig_positions)} rigg-posisjoner til docs/rig_positions.json")
+print(f"\n✅ Lagret {len(rig_positions)} rigg-posisjoner til docs/rig_positions.json")
