@@ -24,7 +24,7 @@ jobs:
         run: python scripts/fetch_rig_positions.py
 
       - name: Upload rig positions artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: rig_positions
           path: docs/rig_positions.json
