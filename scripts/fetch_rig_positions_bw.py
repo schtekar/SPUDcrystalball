@@ -6,9 +6,9 @@ Filtrerer på rigg-MMSI
 """
 
 import os
+import json
 import requests
 from datetime import datetime, timedelta, timezone
-import json
 
 from rig_registry import RIG_MMSI
 
@@ -24,29 +24,41 @@ if not CLIENT_ID or not CLIENT_SECRET:
     raise RuntimeError("❌ Mangler BWAPI secrets")
 
 # -----------------------------
-# 1. Hent access token
+# 1️⃣ Hent access token
 # -----------------------------
+print("🔐 Henter BarentsWatch access token...")
+
+token_body = (
+    f"grant_type=client_credentials"
+    f"&client_id={CLIENT_ID}"
+    f"&client_secret={CLIENT_SECRET}"
+    f"&scope=ais"
+)
+
 token_resp = requests.post(
     TOKEN_URL,
-    headers={"Content-Type": "application/x-www-form-urlencoded"},
-    data={
-        "grant_type": "client_credentials",
-        "client_id": CLIENT_ID,
-        "client_secret": CLIENT_SECRET,
-        "scope": "ais",
+    headers={
+        "Content-Type": "application/x-www-form-urlencoded",
+        "Accept": "application/json",
     },
+    data=token_body,
     timeout=30,
 )
 
 token_resp.raise_for_status()
-access_token = token_resp.json()["access_token"]
+token_data = token_resp.json()
+access_token = token_data["access_token"]
+
+print("✅ Access token mottatt")
 
 # -----------------------------
-# 2. Hent AIS-data (siste X min)
+# 2️⃣ Hent AIS-data (siste 10 min)
 # -----------------------------
 since_time = (
     datetime.now(timezone.utc) - timedelta(minutes=10)
 ).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+print(f"📡 Henter AIS-meldinger siden {since_time}")
 
 resp = requests.get(
     AIS_URL,
@@ -61,13 +73,12 @@ resp = requests.get(
 resp.raise_for_status()
 messages = resp.json()
 
-print(f"📡 Mottok {len(messages)} AIS-meldinger")
+print(f"📦 Mottok {len(messages)} AIS-meldinger totalt")
 
 # -----------------------------
-# 3. Filtrer på rigg-MMSI
+# 3️⃣ Filtrer på rigg-MMSI
 # -----------------------------
 rig_mmsi_set = set(RIG_MMSI.values())
-
 latest_by_mmsi = {}
 
 for msg in messages:
@@ -76,11 +87,15 @@ for msg in messages:
     lon = msg.get("longitude")
     msgtime = msg.get("msgtime")
 
-    if (
-        mmsi in rig_mmsi_set
-        and lat not in (None, 0)
-        and lon not in (None, 0)
-    ):
+    if mmsi not in rig_mmsi_set:
+        continue
+
+    if lat is None or lon is None or msgtime is None:
+        continue
+
+    # behold nyeste punkt per MMSI
+    prev = latest_by_mmsi.get(mmsi)
+    if not prev or msgtime > prev["msgtime"]:
         latest_by_mmsi[mmsi] = {
             "mmsi": mmsi,
             "latitude": lat,
@@ -92,8 +107,10 @@ for msg in messages:
 print(f"🛢️ Fant {len(latest_by_mmsi)} rigger med gyldig posisjon")
 
 # -----------------------------
-# 4. Skriv til fil
+# 4️⃣ Skriv til fil
 # -----------------------------
+os.makedirs("docs", exist_ok=True)
+
 with open(OUT_PATH, "w") as f:
     json.dump(list(latest_by_mmsi.values()), f, indent=2)
 
