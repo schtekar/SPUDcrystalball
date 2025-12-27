@@ -1,0 +1,30 @@
+name: BW Daily Snapshot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'  # kjør hver dag midnatt UTC
+
+jobs:
+  bw_snapshot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Daily BW snapshot
+        run: |
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)/scripts"
+          python scripts/bw_merge.py  # samme script, snapshot logikk håndteres internt
+          
+      - name: Upload BW database artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bw_database_daily
+          path: docs/bw_database.json
