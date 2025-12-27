@@ -44,7 +44,9 @@ access_token = token_resp.json()["access_token"]
 # -----------------------------
 # 2. Hent AIS-data (siste X min)
 # -----------------------------
-since_time = (datetime.now(timezone.utc) - timedelta(minutes=30)).isoformat()
+since_time = (
+    datetime.now(timezone.utc) - timedelta(minutes=10)
+).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 resp = requests.get(
     AIS_URL,
