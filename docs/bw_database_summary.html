@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>SPUD Crystalball – BW Database Summary</title>
+</head>
+<body>
+  <h2>bw_database.json</h2>
+  <pre id="bw_database">Laster...</pre>
+
+  <script>
+    // Hent bw_database.json
+    fetch("bw_database.json")
+      .then(res => {
+        if (!res.ok) {
+          throw new Error("Kunne ikke hente bw_database.json");
+        }
+        return res.json();
+      })
+      .then(data => {
+        // Vis som formaterte JSON
+        document.getElementById("bw_database").textContent = JSON.stringify(data, null, 2);
+      })
+      .catch(err => {
+        document.getElementById("bw_database").textContent = `❌ Feil: ${err}`;
+      });
+  </script>
+</body>
+</html>
