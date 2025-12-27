@@ -3,26 +3,98 @@
 <head>
   <meta charset="UTF-8">
   <title>SPUD Crystalball – BW Database Summary</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 2em;
+      line-height: 1.5;
+    }
+    h2 {
+      margin-top: 2em;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 0.5em;
+    }
+    th, td {
+      border: 1px solid #999;
+      padding: 0.4em 0.6em;
+      text-align: left;
+    }
+    th {
+      background-color: #eee;
+    }
+    .timestamp {
+      font-size: 0.9em;
+      color: #555;
+    }
+  </style>
 </head>
 <body>
-  <h2>bw_database.json</h2>
-  <pre id="bw_database">Laster...</pre>
+  <h1>BW Database Summary</h1>
+
+  <div id="content">Laster data...</div>
 
   <script>
-    // Hent bw_database.json
     fetch("bw_database.json")
-      .then(res => {
-        if (!res.ok) {
-          throw new Error("Kunne ikke hente bw_database.json");
-        }
-        return res.json();
-      })
+      .then(res => res.json())
       .then(data => {
-        // Vis som formaterte JSON
-        document.getElementById("bw_database").textContent = JSON.stringify(data, null, 2);
+        const contentDiv = document.getElementById("content");
+        contentDiv.innerHTML = "";
+
+        const snapshots = ["bw_recent", "bw_12h", "bw_1d", "bw_2d"];
+        snapshots.forEach(snapshot => {
+          const snapData = data[snapshot] || {};
+          const header = document.createElement("h2");
+          header.textContent = snapshot;
+          contentDiv.appendChild(header);
+
+          const table = document.createElement("table");
+          const thead = document.createElement("thead");
+          const headerRow = document.createElement("tr");
+          ["Rig MMSI", "Latitude", "Longitude", "MsgTime"].forEach(h => {
+            const th = document.createElement("th");
+            th.textContent = h;
+            headerRow.appendChild(th);
+          });
+          thead.appendChild(headerRow);
+          table.appendChild(thead);
+
+          const tbody = document.createElement("tbody");
+          Object.values(snapData).forEach(msg => {
+            const tr = document.createElement("tr");
+            const mmsiTd = document.createElement("td");
+            mmsiTd.textContent = msg.mmsi;
+            tr.appendChild(mmsiTd);
+
+            const latTd = document.createElement("td");
+            latTd.textContent = msg.latitude;
+            tr.appendChild(latTd);
+
+            const lonTd = document.createElement("td");
+            lonTd.textContent = msg.longitude;
+            tr.appendChild(lonTd);
+
+            const timeTd = document.createElement("td");
+            timeTd.textContent = msg.msgtime;
+            tr.appendChild(timeTd);
+
+            tbody.appendChild(tr);
+          });
+          table.appendChild(tbody);
+          contentDiv.appendChild(table);
+
+          if (Object.keys(snapData).length === 0) {
+            const p = document.createElement("p");
+            p.textContent = "Ingen data tilgjengelig for dette snapshot.";
+            contentDiv.appendChild(p);
+          }
+        });
       })
       .catch(err => {
-        document.getElementById("bw_database").textContent = `❌ Feil: ${err}`;
+        document.getElementById("content").textContent = "Feil ved lasting av bw_database.json: " + err;
+        console.error(err);
       });
   </script>
 </body>
