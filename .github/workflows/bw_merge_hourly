@@ -1,0 +1,42 @@
+name: BW Merge Hourly
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 * * * *'  # kjør hver time, kl 0 min
+
+jobs:
+  bw_merge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Fetch BW positions
+        env:
+          BWAPI_CLIENTID_URLENCODED: ${{ secrets.BWAPI_CLIENTID_URLENCODED }}
+          BWAPI_PWSECRET: ${{ secrets.BWAPI_PWSECRET }}
+        run: |
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)/scripts"
+          python scripts/fetch_rig_positions_bw.py
+
+      - name: Merge BW data
+        run: |
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)/scripts"
+          python scripts/bw_merge.py
+
+      - name: Upload BW database artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bw_database
+          path: docs/bw_database.json
