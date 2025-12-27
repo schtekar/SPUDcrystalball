@@ -3,7 +3,7 @@ name: BW Merge Hourly
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'  # kjør hver time, kl 0 min
+    - cron: '0 * * * *'  # hver hele time (UTC)
 
 jobs:
   bw_merge:
@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -22,6 +24,7 @@ jobs:
         run: |
           pip install requests
 
+      # 1️⃣ Hent siste AIS-meldinger fra BarentsWatch
       - name: Fetch BW positions
         env:
           BWAPI_CLIENTID_URLENCODED: ${{ secrets.BWAPI_CLIENTID_URLENCODED }}
@@ -30,18 +33,23 @@ jobs:
           export PYTHONPATH="${PYTHONPATH}:$(pwd)/scripts"
           python scripts/fetch_rig_positions_bw.py
 
+      # 2️⃣ Merge meldinger inn i bw_database.json
       - name: Merge BW data
         run: |
           export PYTHONPATH="${PYTHONPATH}:$(pwd)/scripts"
           python scripts/bw_merge.py
 
-      - name: Copy BW Database to docs
+      # 3️⃣ Kopier database til docs (for GitHub Pages)
+      - name: Copy BW database to docs
         run: |
           mkdir -p docs
           cp bw_database.json docs/bw_database.json
 
-      - name: Upload BW database artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: bw_database
-          path: docs/bw_database.json
+      # 4️⃣ Commit tilbake til repo (kun hvis endringer)
+      - name: Commit BW database
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add docs/bw_database.json
+          git commit -m "Update BW database (hourly)" || echo "No changes to commit"
+          git push
