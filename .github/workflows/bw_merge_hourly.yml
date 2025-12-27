@@ -35,6 +35,11 @@ jobs:
           export PYTHONPATH="${PYTHONPATH}:$(pwd)/scripts"
           python scripts/bw_merge.py
 
+      - name: Copy BW Database to docs
+        run: |
+          mkdir -p docs
+          cp bw_database.json docs/bw_database.json
+
       - name: Upload BW database artifact
         uses: actions/upload-artifact@v4
         with:
