@@ -1,59 +1,92 @@
 <!DOCTYPE html>
-<html>
+<html lang="no">
 <head>
-  <title>Kommende offshorebrønner</title>
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet/dist/leaflet.css"
-  />
+  <meta charset="UTF-8">
+  <title>Offshore Brønner & Rigger</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
   <style>
     #map { height: 100vh; }
+    h2 { text-align: center; margin-top: 1rem; }
   </style>
 </head>
 <body>
 
-<h2 style="text-align:center;">test page header</h2>
+<h2>Aktuelle brønner og riggposisjoner</h2>
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script>
-  fetch("data.json")
-    .then(response => response.json())
-    .then(data => {
+const map = L.map("map").setView([60, 3], 5);
 
-      const map = L.map("map").setView([60, 3], 5);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: '&copy; OpenStreetMap contributors'
+// --- 1. Brønner ---
+fetch("data.json")
+  .then(res => res.json())
+  .then(data => {
+    data.forEach(item => {
+      if (!item.lat || !item.lon) return;
+
+      const isEntered = item.entryDate && item.entryDate !== "";
+      const color = isEntered ? "green" : "red";
+
+      const marker = L.circleMarker([item.lat, item.lon], {
+        radius: 6,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.7
       }).addTo(map);
 
-      data.forEach(item => {
-        if (!item.lat || !item.lon) return;
+      const popupHtml = `
+        <b>Brønn:</b> ${item.well}<br/>
+        <b>Operatør:</b> ${item.operator || "UNKNOWN"}<br/>
+        <b>Felt:</b> ${item.field || "UNKNOWN"}<br/>
+        <b>Rigg:</b> ${item.rig_name || "UNKNOWN"}<br/>
+        <b>Status:</b> ${isEntered ? "Entret" : "Ikke påbegynt"}<br/>
+        <b>Entry date:</b> ${item.entryDate || "-"}
+      `;
+      marker.bindPopup(popupHtml);
+    });
+  })
+  .catch(err => console.error("❌ Feil ved lasting av data.json", err));
 
-        const isEntered = item.entryDate && item.entryDate !== "";
+// --- 2. Rigger ---
+fetch("bw_database_summary.json")
+  .then(res => res.json())
+  .then(data => {
+    data.rigs.forEach(rigg => {
+      const pos = rigg.bw_recent;
+      if (!pos || !pos.latitude || !pos.longitude) return;
 
-        const markerColor = isEntered ? "green" : "red";
+      // Farge basert på alder
+      const msgTime = new Date(pos.msgtime);
+      const ageHours = (Date.now() - msgTime.getTime()) / (1000 * 60 * 60);
+      let color = "gray";
+      if (ageHours <= 1) color = "blue";      // fersk info
+      else if (ageHours <= 6) color = "orange"; 
+      else color = "purple";                   // eldre info
 
-        const marker = L.circleMarker([item.lat, item.lon], {
-          radius: 7,
-          color: markerColor,
-          fillColor: markerColor,
-          fillOpacity: 0.8
-        }).addTo(map);
+      const marker = L.circleMarker([pos.latitude, pos.longitude], {
+        radius: 7,
+        color: color,
+        fillColor: color,
+        fillOpacity: 0.8
+      }).addTo(map);
 
-        const popupHtml = `
-          <b>Brønn:</b> ${item.well}<br/>
-          <b>Operatør:</b> ${item.operator || "UNKNOWN"}<br/>
-          <b>Felt:</b> ${item.field || "UNKNOWN"}<br/>
-          <b>Rigg:</b> ${item.rig_name || "UNKNOWN"}<br/>
-          <b>Status:</b> ${isEntered ? "Entret" : "Ikke påbegynt"}<br/>
-          <b>Entry date:</b> ${item.entryDate || "-"}
-        `;
-
-        marker.bindPopup(popupHtml);
-      });
-    })
-    .catch(err => console.error("❌ Feil ved lasting av data.json", err));
+      const popupHtml = `
+        <b>MMSI:</b> ${rigg.mmsi}<br/>
+        <b>Siste posisjon:</b> ${pos.latitude.toFixed(4)}, ${pos.longitude.toFixed(4)}<br/>
+        <b>Tidspunkt:</b> ${pos.msgtime}<br/>
+        <b>12h snapshot:</b> ${rigg.bw_12h ? rigg.bw_12h.msgtime : "-"}<br/>
+        <b>1d snapshot:</b> ${rigg.bw_1d ? rigg.bw_1d.msgtime : "-"}<br/>
+        <b>2d snapshot:</b> ${rigg.bw_2d ? rigg.bw_2d.msgtime : "-"}
+      `;
+      marker.bindPopup(popupHtml);
+    });
+  })
+  .catch(err => console.error("❌ Feil ved lasting av bw_database_summary.json", err));
 </script>
 
 </body>
