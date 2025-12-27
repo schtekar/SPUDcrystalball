@@ -3,7 +3,7 @@ name: BW Daily Snapshot
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'  # kjør hver dag midnatt UTC
+    - cron: '0 0 * * *'  # hver dag kl 00:00 UTC
 
 jobs:
   bw_snapshot:
@@ -12,19 +12,31 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          persist-credentials: true
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
+      # 1️⃣ Kjør snapshot-logikk (ingen ny fetch)
       - name: Daily BW snapshot
         run: |
           export PYTHONPATH="${PYTHONPATH}:$(pwd)/scripts"
-          python scripts/bw_merge.py  # samme script, snapshot logikk håndteres internt
-          
-      - name: Upload BW database artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: bw_database_daily
-          path: docs/bw_database.json
+          python scripts/bw_merge.py
+
+      # 2️⃣ Kopier oppdatert database til docs
+      - name: Copy BW database to docs
+        run: |
+          mkdir -p docs
+          cp bw_database.json docs/bw_database.json
+
+      # 3️⃣ Commit snapshot til repo
+      - name: Commit BW database snapshot
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add docs/bw_database.json
+          git commit -m "Update BW database (daily snapshot)" || echo "No changes to commit"
+          git push
