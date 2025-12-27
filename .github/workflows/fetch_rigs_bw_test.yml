@@ -1,0 +1,35 @@
+name: Test fetch rig positions (BarentsWatch)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch_rigs_bw:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Fetch rig positions from BarentsWatch
+        env:
+          BWAPI_CLIENTID_URLENCODED: ${{ secrets.BWAPI_CLIENTID_URLENCODED }}
+          BWAPI_PWSECRET: ${{ secrets.BWAPI_PWSECRET }}
+        run: |
+          export PYTHONPATH="${PYTHONPATH}:$(pwd)/scripts"
+          python scripts/fetch_rig_positions_bw.py
+
+      - name: Upload BarentsWatch rig positions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rig_positions_barentswatch
+          path: docs/rig_positions_bw.json
