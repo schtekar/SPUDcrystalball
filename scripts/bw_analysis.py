@@ -2,7 +2,7 @@ import json
 import os
 from datetime import datetime
 
-BW_DB_PATH = "bw_database.json"
+BW_DB_PATH = "docs/bw_database.json"
 OUT_PATH = "docs/bw_database_summary.json"
 
 if not os.path.exists(BW_DB_PATH):
